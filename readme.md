@@ -256,13 +256,11 @@ An implementation is provided for combining results into an
 
 **`actionize.combineImmutable(reducers, [structure])`**
 
-An Immutable `structure` must be provided if not given to the `Actionize` constructor.
-
-When creating `Actionize`, the Immutable library can be passed as an argument:
+When creating `Actionize`, the Immutable library can be passed as an argument to the constructor:
 
 **`const actionize = new Actionize({ Immutable });`**
 
-Or directly when calling this method:
+If it is not given to the constructor, it must be given directly when calling this method:
 
 **`actionize.combineImmutable(reducers, Immutable.Map)`**
 
