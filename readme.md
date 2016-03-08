@@ -164,6 +164,35 @@ myDispatcher.todoList.edit({
 myDispatcher.otherActions.doSomething({ ... });
 ```
 
+### Context
+
+Actionize provides a way to give action handlers a custom `this` argument.
+This is useful for injecting dependencies.
+
+When creating `Actionize`, pass a `context` option as a function that
+returns the context for the given handler and reducer.
+
+```js
+import Actionize from 'actionize';
+
+const actionize = new Actionize({
+	// Takes handler = example.foo, reducer = example
+	// Returns the "this" object for the handler.
+	context(handler, reducer) {
+		return { custom: 'bar' };
+	}
+});
+
+const example = actionize.reducer('example', '', {
+	foo(state, action) {
+		return 'baz' + this.custom;
+	}
+});
+
+const value = example.foo();
+// value = 'bazbar'
+```
+
 ## Handle External Actions
 
 There may be cases where you'd like a reducer to listen for an action defined in another.

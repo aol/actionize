@@ -78,6 +78,27 @@ describe('actionize', () => {
 			expect(value1).toEqual({ foo: 'bar', baz: 'val1' });
 			expect(value2).toEqual({ foo: 'bar', baz: 'val2' });
 		});
+
+		it('allows passing custom context to handlers', () => {
+			let contextHandler;
+			let contextReducer;
+			const actionize = new Actionize({
+				context: (handler, reducer) => {
+					contextHandler = handler;
+					contextReducer = reducer;
+					return { custom: 'context' };
+				}
+			});
+			const reducer = actionize.reducer('context', {}, {
+				foo() {
+					return { custom: this.custom, foo: true };
+				}
+			});
+			const value = reducer({}, { type: reducer.foo.type });
+			expect(value).toEqual({ custom: 'context', foo: true });
+			expect(contextHandler).toBe(reducer.foo);
+			expect(contextReducer).toBe(reducer);
+		});
 	});
 
 	describe('dispatcher', () => {
@@ -213,6 +234,14 @@ describe('actionize', () => {
 				r1: reducerImmutable1,
 				r2: reducerImmutable2
 			}, Immutable.Map));
+		});
+
+		it('(immutable) works with Immutable given to constructor', () => {
+			const actionize = new Actionize({ Immutable });
+			testCombinedImmutable(actionize.combineImmutable({
+				r1: reducerImmutable1,
+				r2: reducerImmutable2
+			}));
 		});
 
 		it('(immutable) throws error without structure', () => {

@@ -70,13 +70,8 @@ export default class Actionize
 			const actionType = action && action.type;
 			const handlers = actionType && actionHandlers[actionType];
 			if (handlers) {
-				let contextFunc = null;
-				if (this._options.context) {
-					contextFunc = this._options.context;
-				}
 				handlers.forEach(handler => {
-					const context = contextFunc && contextFunc(handler);
-					state = handler.call(context, state, action);
+					state = handler(state, action);
 				});
 			}
 			return state;
@@ -85,19 +80,22 @@ export default class Actionize
 		Object.keys(actions).forEach(key => {
 			let actionTypes;
 			const actionHandler = actions[key];
+			const actionCall = (state, action) => {
+				const contextFunc = this._options.context;
+				const context = contextFunc && contextFunc(actionCall, reducerFunc);
+				return actionHandler.call(context, state, action);
+			};
 			if (key[0] === '|') {
 				actionTypes = key.split('|').filter(key => !!key).map(key => '|' + key);
 			} else {
 				const actionType = this._createActionType(namespace, key);
 				actionTypes = [ actionType ];
-				const actionCall = (state, action) => reducerFunc(state, { ...action, type: actionType });
 				actionCall.type = actionType;
-				actionHandler.type = actionType;
 				reducerFunc[key] = actionCall;
 			}
 			actionTypes.forEach(name => {
 				const list = actionHandlers[name] || (actionHandlers[name] = []);
-				list.push(actionHandler);
+				list.push(actionCall);
 			});
 		});
 
