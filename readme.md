@@ -168,6 +168,7 @@ const combinedReducer = combine({ foo, bar }, pick, join);
 ### Combine Reducers (Plain JS Object)
 
 An implementation is provided for combining results into a plain JS object:
+
 **`combine.plain(reducers)`**
 
 Which is the same as writing:
@@ -190,6 +191,7 @@ An implementation is provided for combining results into an
 **`combine.immutable(reducers, structure)`**
 
 An Immutable `structure` must be provided; for example:
+
 **`combine.immutable(reducers, Immutable.Map)`**
 
 Which is the same as writing:
@@ -234,6 +236,7 @@ const combinedReducer = combine(foo, { bar, baz }, pick, join);
 ### Nest Reducers (Plain JS Object)
 
 An implementation is provided for nesting results into a plain JS object:
+
 **`nest.plain(parent, reducers)`**
 
 Which is the same as writing:
@@ -254,6 +257,7 @@ properties `bar` and `baz` with values being their respective reducer-generated 
 
 An implementation is provided for combining nesting results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
+
 **`nest.immutable(parent, reducers)`**
 
 Which is the same as writing:
