@@ -247,7 +247,7 @@ export default class Actionize
 			}
 		}
 		if (!structure) {
-			throw new Error('actionize.combine.immutable(reducers, structure) requires an Immutable structure.');
+			throw new Error('actionize.combineImmutable(reducers, structure) requires an Immutable structure.');
 		}
 		return this.combine(
 			reducers,
