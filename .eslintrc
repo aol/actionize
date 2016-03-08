@@ -1,0 +1,8 @@
+{
+	"extends": "rackt",
+	"rules": {
+		"semi": [2, "always"],
+		"indent": [2, "tab"],
+		"valid-jsdoc": 2
+	}
+}
