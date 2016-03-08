@@ -254,9 +254,9 @@ respective reducer-generated states.
 An implementation is provided for combining results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
 
-**`actionize.combineImmutable(reducers, structure)`**
+**`actionize.combineImmutable(reducers, [structure])`**
 
-An Immutable `structure` must be provided; for example:
+An Immutable `structure` must be provided if not given to the `Actionize` constructor; for example:
 
 **`actionize.combineImmutable(reducers, Immutable.Map)`**
 
@@ -275,7 +275,7 @@ actionize.combine(
 
 The implementation uses `get` to pick the values and the given `structure` to join them.
 
-For example, `actionize.combineImmutable({ foo, bar }, Immutable.Map);` would combine `foo` and `bar` reducers into one
+For example, `actionize.combineImmutable({ foo, bar });` would combine `foo` and `bar` reducers into one
 reducer that returns an [Immutable Map](https://facebook.github.io/immutable-js/docs/#/Map) containing keys
 `foo` and `bar` with values being their respective reducer-generated states.
 
