@@ -20,9 +20,10 @@ in one location without using switch statements:
 Each action is a **function**, taking the current state and the action object.
 
 ```js
-import { reducer } from 'actionize';
+import Actionize from 'actionize';
+const actionize = new Actionize();
 
-const todoList = reducer('todos.list', [], {
+const todoList = actionize.reducer('todos.list', [], {
 
 	// An action:
 	// Takes the current state and arguments, and returns the new state.
@@ -42,7 +43,7 @@ const todoList = reducer('todos.list', [], {
 });
 ```
 
-**`reducer(namespace, initialState, actions)`**
+**`actionize.reducer(namespace, initialState, actions)`**
 
 |Argument||
 |:---|:---|
@@ -65,7 +66,7 @@ They can be referenced through `todoList.add.type` and `todoList.complete.type`,
 Because the action handlers are exposed directly, it makes reducer composition easier:
 
 ```js
-const todoList = reducer('todos.list', [], {
+const todoList = actionize.reducer('todos.list', [], {
 	// ...
 	edit(state, { id, todo }) {
 		return state.map(value => {
@@ -80,7 +81,7 @@ const todoList = reducer('todos.list', [], {
 	}
 });
 
-const todoItem = reducer('todos.item', null, {
+const todoItem = actionize.reducer('todos.item', null, {
 	edit(state, { text, done }) {
 		return {
 			text: text || state.text || '',
@@ -108,7 +109,7 @@ store.dispatch({
 A better way is to use the built-in Actionize `dispatcher` to create a dispatch handler, passing the
 reducer and the Redux store's dispatch function.
 
-**`dispatcher(actions, reduxStoreDispatch)`**
+**`actionize.dispatcher(actions, reduxStoreDispatch)`**
 
 |Argument||
 |:---|:---|
@@ -116,9 +117,7 @@ reducer and the Redux store's dispatch function.
 |`reduxStoreDispatch`|The Redux dispatch function from a store.|
 
 ```js
-import { dispatcher } from 'actionize';
-
-const todoListActions = dispatcher(todoList, store.dispatch);
+const todoListActions = actionize.dispatcher(todoList, store.dispatch);
 
 todoListActions.edit({
 	id: 123,
@@ -132,13 +131,11 @@ You can also create a custom dispatcher by simply passing a custom object as the
 each item being an action handler:
 
 ```js
-import { dispatcher } from 'actionize';
-
-const todoListActions = dispatcher({
-	todoList.edit,
-	todoList.remove,
-	otherReducer.doSomething,
-	...
+const todoListActions = actionize.dispatcher({
+	edit: todoList.edit,
+	remove: todoList.remove,
+	doSomething: otherReducer.doSomething,
+	// ...
 }, store.dispatch);
 
 todoListActions.edit({
@@ -150,14 +147,12 @@ todoListActions.edit({
 The values can also be nested:
 
 ```js
-import { dispatcher } from 'actionize';
-
-const myDispatcher = dispatcher({
+const myDispatcher = actionize.dispatcher({
 	todoList: todoListReducer,
 	otherActions: {
 		doSomething: otherReducer.doSomething
 	},
-	...
+	// ...
 }, store.dispatch);
 
 myDispatcher.todoList.edit({
@@ -174,17 +169,15 @@ There may be cases where you'd like a reducer to listen for an action defined in
 Actionize exposes a `handle` function to wire an action handler for external/multiple actions.
 
 ```js
-import { reducer, handle } from 'actionize';
-
-const app = reducer('app', {}, {
+const app = actionize.reducer('app', {}, {
 	userLoggedIn(state, { username }) {
 		// ...
 	}
 });
 
 // Handle an action from another reducer.
-const todoList = reducer('todos.list', [], {
-	[handle(app.userLoggedIn)](state, { username }) {
+const todoList = actionize.reducer('todos.list', [], {
+	[actionize.handle(app.userLoggedIn)](state, { username }) {
 		// Fetch user todos...
 	}
 });
@@ -194,21 +187,21 @@ You can also setup an action handler for a whole reducer, or multiple actions:
 
 ```js
 // Handle multiple specific actions.
-const todoList = reducer('todos.list', [], {
+const todoList = actionize.reducer('todos.list', [], {
 
 	// ...
 
-	[handle(app.userLoggedIn, app.userLoggedOut)](state, { username }) {
+	[actionize.handle(app.userLoggedIn, app.userLoggedOut)](state, { username }) {
 		// Do something.
 	}
 });
 
 // Handle all actions defined in another reducer.
-const todoList = reducer('todos.list', [], {
+const todoList = actionize.reducer('todos.list', [], {
 
 	// ...
 
-	[handle(app)](state, action) {
+	[actionize.handle(app)](state, action) {
 		// Do something.
 	}
 });
@@ -220,7 +213,7 @@ Actionize exposes a `combine` function to combine reducers similar to Redux's
 [`combineReducers`](http://redux.js.org/docs/api/combineReducers.html) except it provides a way to change how
 the results are combined:
 
-**`combine(reducers, pick, join)`**
+**`actionize.combine(reducers, pick, join)`**
 
 |Argument||
 |:---|:---|
@@ -232,27 +225,27 @@ Example:
 
 ```js
 import { reducer, combine } from 'actionize';
-const foo = reducer(...);
-const bar = reducer(...);
-const combinedReducer = combine({ foo, bar }, pick, join);
+const foo = actionize.reducer(...);
+const bar = actionize.reducer(...);
+const combinedReducer = actionize.combine({ foo, bar }, pick, join);
 ```
 
 ### Combine Reducers (Plain JS Object)
 
 An implementation is provided for combining results into a plain JS object:
 
-**`combine.plain(reducers)`**
+**`actionize.combinePlain(reducers)`**
 
 Which is the same as writing:
 ```js
-combine(
+actionize.combine(
 	reducers,
 	(state, key) => state && state[key],
 	(state, values) => values
 );
 ```
 
-For example, `combine.plain({ foo, bar });` would combine `foo` and `bar` reducers into one
+For example, `actionize.combinePlain({ foo, bar });` would combine `foo` and `bar` reducers into one
 reducer that returns a plain JS object containing properties `foo` and `bar` with values being their
 respective reducer-generated states.
 
@@ -261,15 +254,19 @@ respective reducer-generated states.
 An implementation is provided for combining results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
 
-**`combine.immutable(reducers, structure)`**
+**`actionize.combineImmutable(reducers, structure)`**
 
 An Immutable `structure` must be provided; for example:
 
-**`combine.immutable(reducers, Immutable.Map)`**
+**`actionize.combineImmutable(reducers, Immutable.Map)`**
+
+Or when creating `Actionize`:
+
+**`const actionize = new Actionize({ Immutable });`**
 
 Which is the same as writing:
 ```js
-combine(
+actionize.combine(
 	reducers,
 	(state, key) => state && state.get(key),
 	(state, values) => Immutable.Map(values)
@@ -278,7 +275,7 @@ combine(
 
 The implementation uses `get` to pick the values and the given `structure` to join them.
 
-For example, `combine.immutable({ foo, bar }, Immutable.Map);` would combine `foo` and `bar` reducers into one
+For example, `actionize.combineImmutable({ foo, bar }, Immutable.Map);` would combine `foo` and `bar` reducers into one
 reducer that returns an [Immutable Map](https://facebook.github.io/immutable-js/docs/#/Map) containing keys
 `foo` and `bar` with values being their respective reducer-generated states.
 
@@ -287,7 +284,7 @@ reducer that returns an [Immutable Map](https://facebook.github.io/immutable-js/
 Actionize exposes a `nest` function to combine reducer results _underneath_ of another reducer's results.
 
 
-**`nest(parent, reducers, pick, join)`**
+**`actionize.nest(parent, reducers, pick, join)`**
 
 |Argument||
 |:---|:---|
@@ -299,22 +296,21 @@ Actionize exposes a `nest` function to combine reducer results _underneath_ of a
 Example:
 
 ```js
-import { reducer, nest } from 'actionize';
-const foo = reducer(...);
-const bar = reducer(...);
-const baz = reducer(...);
-const combinedReducer = combine(foo, { bar, baz }, pick, join);
+const foo = actionize.reducer(...);
+const bar = actionize.reducer(...);
+const baz = actionize.reducer(...);
+const combinedReducer = actionize.nest(foo, { bar, baz }, pick, join);
 ```
 
 ### Nest Reducers (Plain JS Object)
 
 An implementation is provided for nesting results into a plain JS object:
 
-**`nest.plain(parent, reducers)`**
+**`actionize.nestPlain(parent, reducers)`**
 
 Which is the same as writing:
 ```js
-nest(
+actionize.nest(
 	parent,
 	reducers,
 	(state, key) => state && state[key],
@@ -322,7 +318,7 @@ nest(
 );
 ```
 
-For example, `nest.plain(foo, { bar, baz });` would combine all reducers and nest `bar` and `baz` reducer-generated
+For example, `nestPlain(foo, { bar, baz });` would combine all reducers and nest `bar` and `baz` reducer-generated
 results in properties under the `foo` reducer-generated result. The `foo` result would be extended to include
 properties `bar` and `baz` with values being their respective reducer-generated states.
 
@@ -331,11 +327,11 @@ properties `bar` and `baz` with values being their respective reducer-generated 
 An implementation is provided for nesting results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
 
-**`nest.immutable(parent, reducers)`**
+**`actionize.nestImmutable(parent, reducers)`**
 
 Which is the same as writing:
 ```js
-nest(
+actionize.nest(
 	parent,
 	reducers,
 	(state, key) => state && state.get(key),
@@ -345,6 +341,6 @@ nest(
 
 The implementation uses `get` to pick the values and `merge` to join them.
 
-For example, `nest.immutable(foo, { bar, baz });` would combine all reducers and nest `bar` and `baz` reducer-generated
+For example, `actionize.nestImmutable(foo, { bar, baz });` would combine all reducers and nest `bar` and `baz` reducer-generated
 results in properties under the `foo` reducer-generated result. The `foo` result would be extended to include
 properties `bar` and `baz` with values being their respective reducer-generated states.

@@ -1,8 +1,10 @@
 import expect from 'expect';
 import Immutable from 'immutable';
-import * as actionize from '../src/index';
+import Actionize from '../src/Actionize';
 
 describe('actionize', () => {
+
+	const actionize = new Actionize;
 
 	describe('reducer', () => {
 
@@ -14,15 +16,15 @@ describe('actionize', () => {
 		});
 
 		it('rejects invalid names', () => {
-			const action = (state, action) => state;
+			const action = (state) => state;
 			const actions = { action };
 			expect(() => actionize.reducer({}, {}, actions)).toThrow(/namespace must be a string/);
 			expect(() => actionize.reducer('|foo', {}, actions)).toThrow(/namespace cannot contain characters/);
 			expect(() => actionize.reducer('foo:bar', {}, actions)).toThrow(/namespace cannot contain characters/);
 			expect(() => actionize.reducer('foo#bar', {}, actions)).toThrow(/namespace cannot contain characters/);
-			expect(() => actionize.reducer('red1', {}, {'foo:bar':action})).toThrow(/key cannot contain characters/);
-			expect(() => actionize.reducer('red2', {}, {'foo#bar':action})).toThrow(/key cannot contain characters/);
-			expect(() => actionize.reducer('red3', {}, {'foo.bar':action})).toThrow(/key cannot contain characters/);
+			expect(() => actionize.reducer('red1', {}, { 'foo:bar': action })).toThrow(/key cannot contain characters/);
+			expect(() => actionize.reducer('red2', {}, { 'foo#bar': action })).toThrow(/key cannot contain characters/);
+			expect(() => actionize.reducer('red3', {}, { 'foo.bar': action })).toThrow(/key cannot contain characters/);
 		});
 
 		it('handles actions properly', () => {
@@ -45,15 +47,15 @@ describe('actionize', () => {
 
 		it('ensures action types do not collide', () => {
 			const initialState = { foo: 'bar' };
-			const reducer1 = actionize.reducer('reducer.dupe', initialState, { foo: (state, action) => state });
-			const reducer2 = actionize.reducer('reducer.dupe', initialState, { foo: (state, action) => state });
-			expect(reducer1.foo.type).toNotBe(reducer2.foo.type)
+			const reducer1 = actionize.reducer('reducer.dupe', initialState, { foo: (state) => state });
+			const reducer2 = actionize.reducer('reducer.dupe', initialState, { foo: (state) => state });
+			expect(reducer1.foo.type).toNotBe(reducer2.foo.type);
 		});
 
 		it('allows handling external actions', () => {
 			const initialState = { foo: 'bar' };
 			const reducer1 = actionize.reducer('reducer.ext1', initialState, {
-				foo: (state, action) => state
+				foo: (state) => state
 			});
 			const reducer2 = actionize.reducer('reducer.ext2', initialState, {
 				[reducer1.foo.type]: (state, action) => ({ ...state, baz: action.baz })
@@ -65,8 +67,8 @@ describe('actionize', () => {
 		it('allows handling multiple external actions', () => {
 			const initialState = { foo: 'bar' };
 			const reducer1 = actionize.reducer('reducer.ext1', initialState, {
-				foo1: (state, action) => state,
-				foo2: (state, action) => state
+				foo1: (state) => state,
+				foo2: (state) => state
 			});
 			const reducer2 = actionize.reducer('reducer.ext2', initialState, {
 				[reducer1.foo1.type + reducer1.foo2.type]: (state, action) => ({ ...state, baz: action.baz })
@@ -92,7 +94,7 @@ describe('actionize', () => {
 			);
 			dispatcher.foo({ text: 'baz' });
 			dispatcher.bar({ text: 'qux' });
-			expect(dispatched).toEqual(['foobaz', 'barqux']);
+			expect(dispatched).toEqual([ 'foobaz', 'barqux' ]);
 		});
 
 		it('works with actions and objects', () => {
@@ -115,7 +117,7 @@ describe('actionize', () => {
 			dispatcher.r1.bar({ text: '2' });
 			dispatcher.customName1({ text: '3' });
 			dispatcher.customName2.customName3({ text: '4' });
-			expect(dispatched).toEqual(['foo1', 'bar2', 'foo3', 'bar4']);
+			expect(dispatched).toEqual([ 'foo1', 'bar2', 'foo3', 'bar4' ]);
 		});
 	});
 
@@ -123,8 +125,8 @@ describe('actionize', () => {
 
 		it('works with strings', () => {
 			const reducer = actionize.reducer('handle1', {}, {
-				foo: (state, action) => state,
-				bar: (state, action) => state
+				foo: (state) => state,
+				bar: (state) => state
 			});
 			const value = actionize.handle(reducer.foo.type, reducer.bar.type);
 			expect(value).toEqual('|handle1:foo|handle1:bar');
@@ -132,8 +134,8 @@ describe('actionize', () => {
 
 		it('works with action handlers', () => {
 			const reducer = actionize.reducer('handle2', {}, {
-				foo: (state, action) => state,
-				bar: (state, action) => state
+				foo: (state) => state,
+				bar: (state) => state
 			});
 			const value = actionize.handle(reducer.foo, reducer.bar);
 			expect(value).toEqual('|handle2:foo|handle2:bar');
@@ -141,12 +143,12 @@ describe('actionize', () => {
 
 		it('works with reducers', () => {
 			const reducer1 = actionize.reducer('h3', {}, {
-				foo: (state, action) => state,
-				bar: (state, action) => state
+				foo: (state) => state,
+				bar: (state) => state
 			});
 			const reducer2 = actionize.reducer('h4', {}, {
-				baz: (state, action) => state,
-				qux: (state, action) => state
+				baz: (state) => state,
+				qux: (state) => state
 			});
 			const value = actionize.handle(reducer1, reducer2);
 			expect(value).toEqual('|h3:foo|h3:bar|h4:baz|h4:qux');
@@ -156,10 +158,10 @@ describe('actionize', () => {
 	describe('combine', () => {
 
 		const reducerPlain1 = actionize.reducer('c1', { c1: true }, {
-			foo: (state, action) => ({ ...state, foo: true })
+			foo: (state) => ({ ...state, foo: true })
 		});
 		const reducerPlain2 = actionize.reducer('c2', { c2: true }, {
-			bar: (state, action) => ({ ...state, bar: true })
+			bar: (state) => ({ ...state, bar: true })
 		});
 
 		function testCombinedPlain(combinedReducer) {
@@ -174,10 +176,10 @@ describe('actionize', () => {
 		}
 
 		const reducerImmutable1 = actionize.reducer('ci1', Immutable.Map({ c1: true }), {
-			foo: (state, action) => state.set('foo', true)
+			foo: (state) => state.set('foo', true)
 		});
 		const reducerImmutable2 = actionize.reducer('ci2', Immutable.Map({ c2: true }), {
-			bar: (state, action) => state.set('bar', true)
+			bar: (state) => state.set('bar', true)
 		});
 
 		function testCombinedImmutable(combinedReducer) {
@@ -200,14 +202,14 @@ describe('actionize', () => {
 		});
 
 		it('(plain) works', () => {
-			testCombinedPlain(actionize.combine.plain({
+			testCombinedPlain(actionize.combinePlain({
 				r1: reducerPlain1,
 				r2: reducerPlain2
 			}));
 		});
 
 		it('(immutable) works', () => {
-			testCombinedImmutable(actionize.combine.immutable({
+			testCombinedImmutable(actionize.combineImmutable({
 				r1: reducerImmutable1,
 				r2: reducerImmutable2
 			}, Immutable.Map));
@@ -215,10 +217,10 @@ describe('actionize', () => {
 
 		it('(immutable) throws error without structure', () => {
 			expect(() => {
-				actionize.combine.immutable({
+				actionize.combineImmutable({
 					r1: reducerImmutable1,
 					r2: reducerImmutable2
-				})
+				});
 			}).toThrow(/requires an immutable structure/i);
 		});
 	});
@@ -226,10 +228,10 @@ describe('actionize', () => {
 	describe('nest', () => {
 
 		const reducerPlain1 = actionize.reducer('n1', { n1: true }, {
-			foo: (state, action) => ({ ...state, foo: true })
+			foo: (state) => ({ ...state, foo: true })
 		});
 		const reducerPlain2 = actionize.reducer('n2', { n2: true }, {
-			bar: (state, action) => ({ ...state, bar: true })
+			bar: (state) => ({ ...state, bar: true })
 		});
 
 		function testNestPlain(nestedReducer) {
@@ -244,10 +246,10 @@ describe('actionize', () => {
 		}
 
 		const reducerImmutable1 = actionize.reducer('ni1', Immutable.Map({ n1: true }), {
-			foo: (state, action) => state.set('foo', true)
+			foo: (state) => state.set('foo', true)
 		});
 		const reducerImmutable2 = actionize.reducer('ni2', Immutable.Map({ n2: true }), {
-			bar: (state, action) => state.set('bar', true)
+			bar: (state) => state.set('bar', true)
 		});
 
 		function testNestImmutable(nestedReducer) {
@@ -271,11 +273,11 @@ describe('actionize', () => {
 		});
 
 		it('(plain) works', () => {
-			testNestPlain(actionize.nest.plain(reducerPlain1, {  r2: reducerPlain2 }));
+			testNestPlain(actionize.nestPlain(reducerPlain1, {  r2: reducerPlain2 }));
 		});
 
 		it('(immutable) works', () => {
-			testNestImmutable(actionize.nest.immutable(reducerImmutable1, { r2: reducerImmutable2 }));
+			testNestImmutable(actionize.nestImmutable(reducerImmutable1, { r2: reducerImmutable2 }));
 		});
 	});
 
