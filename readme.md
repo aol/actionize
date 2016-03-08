@@ -76,7 +76,7 @@ const todoItem = reducer('todos.item', null, {
 Dispatching actions can be done in a very basic way by creating an action object and using Redux's
 [dispatch](http://redux.js.org/docs/api/Store.html#dispatch) function:
 
-```
+```js
 store.dispatch({
 	type: todoList.edit.type,
 	id: 123,
@@ -89,7 +89,7 @@ store.dispatch({
 A better way is to use the built-in Actionize `dispatcher` to create a dispatch handler, passing the
 reducer and the Redux store's dispatch function.
 
-```
+```js
 import { dispatcher } from 'actionize';
 
 const todoListActions = dispatcher(todoList, store.dispatch);
@@ -105,7 +105,7 @@ todoListActions.edit({
 You can also create a custom dispatcher by simply passing a custom object as the first argument with
 each item being an action handler:
 
-```
+```js
 import { dispatcher } from 'actionize';
 
 const todoListActions = dispatcher({
@@ -123,7 +123,7 @@ todoListActions.edit({
 
 The values can also be nested:
 
-```
+```js
 import { dispatcher } from 'actionize';
 
 const myDispatcher = dispatcher({
@@ -158,7 +158,7 @@ the results are combined:
 
 Example:
 
-```
+```js
 import { reducer, combine } from 'actionize';
 const foo = reducer(...);
 const bar = reducer(...);
@@ -171,7 +171,7 @@ An implementation is provided for combining results into a plain JS object:
 **`combine.plain(reducers)`**
 
 Which is the same as writing:
-```
+```js
 combine(
 	reducers,
 	(state, key) => state && state[key],
@@ -193,7 +193,7 @@ An Immutable `structure` must be provided; for example:
 **`combine.immutable(reducers, Immutable.Map)`**
 
 Which is the same as writing:
-```
+```js
 combine(
 	reducers,
 	(state, key) => state && state.get(key),
@@ -223,7 +223,7 @@ Actionize exposes a `nest` function to combine reducer results _underneath_ of a
 
 Example:
 
-```
+```js
 import { reducer, nest } from 'actionize';
 const foo = reducer(...);
 const bar = reducer(...);
@@ -237,7 +237,7 @@ An implementation is provided for nesting results into a plain JS object:
 **`nest.plain(parent, reducers)`**
 
 Which is the same as writing:
-```
+```js
 nest(
 	parent,
 	reducers,
@@ -257,7 +257,7 @@ An implementation is provided for combining nesting results into an
 **`nest.immutable(parent, reducers)`**
 
 Which is the same as writing:
-```
+```js
 nest(
 	parent,
 	reducers,
