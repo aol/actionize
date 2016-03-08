@@ -1,7 +1,7 @@
 {
   "name": "actionize",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A small library to help build Redux reducers and their associated actions.",
   "main": "lib/Actionize.js",
   "jsnext:main": "es/Actionize.js",
