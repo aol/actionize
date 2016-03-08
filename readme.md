@@ -7,14 +7,6 @@ A small library to help build [Redux](http://redux.js.org/) reducers and their a
 Actionize exposes a `reducer` function to allow easy construction of reducers/actions
 in one location without using switch statements:
 
-**`reducer(namespace, initialState, actions)`**
-
-|Argument||
-|:---|:---|
-|`namespace`|A string namespace for the reducer. Mainly for debugging and inspection purposes.|
-|`initialState`|The initial state for the reducer.|
-|`actions`|An object containing functions for each action the reducer exposes.|
-
 Each action is a **function**, taking the current state and the action object.
 
 ```js
@@ -22,6 +14,8 @@ import { reducer } from 'actionize';
 
 const todoList = reducer('todos.list', [], {
 
+	// An action:
+	// Takes the current state and arguments, and returns the new state.
 	add(state, { text }) {
 		return [
 			...state,
@@ -37,6 +31,14 @@ const todoList = reducer('todos.list', [], {
 	}
 });
 ```
+
+**`reducer(namespace, initialState, actions)`**
+
+|Argument||
+|:---|:---|
+|`namespace`|A string namespace for the reducer. Mainly for debugging and inspection purposes.|
+|`initialState`|The initial state for the reducer.|
+|`actions`|An object containing functions for each action the reducer exposes.|
 
 The `reducer` function returns a reducer with the same signature that Redux expects:
 `(state, action) => newState`. It can be used directly with other Redux or with other reducers.
