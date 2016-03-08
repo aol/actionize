@@ -53,11 +53,11 @@ export default class Actionize
 	 * For example:
 	 * <pre><code>
 	 * {
- *   addPropertyActionExample(state, action) {
- *     return { ...state, anotherProperty: action.value };
- *   },
- *   ...
- * }
+	 *   addPropertyActionExample(state, action) {
+	 *     return { ...state, anotherProperty: action.value };
+	 *   },
+	 *   ...
+	 * }
 	 * </code></pre>
 	 *
 	 * @returns {Function} The reducer function.
