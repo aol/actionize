@@ -177,16 +177,16 @@ Actionize exposes a `handle` function to wire an action handler for external/mul
 import { reducer, handle } from 'actionize';
 
 const app = reducer('app', {}, {
-  userLoggedIn(state, { username }) {
-    // ...
-  }
+	userLoggedIn(state, { username }) {
+		// ...
+	}
 });
 
 // Handle an action from another reducer.
 const todoList = reducer('todos.list', [], {
-  [handle(app.userLoggedIn)](state, { username }) {
-    // Fetch user todos...
-  }
+	[handle(app.userLoggedIn)](state, { username }) {
+		// Fetch user todos...
+	}
 });
 ```
 
@@ -198,19 +198,19 @@ const todoList = reducer('todos.list', [], {
 
 	// ...
 
-  [handle(app.userLoggedIn, app.userLoggedOut)](state, { username }) {
-    // Do something.
-  }
+	[handle(app.userLoggedIn, app.userLoggedOut)](state, { username }) {
+		// Do something.
+	}
 });
 
 // Handle all actions defined in another reducer.
 const todoList = reducer('todos.list', [], {
 
-  // ...
+	// ...
 
-  [handle(app)](state, action) {
-    // Do something.
-  }
+	[handle(app)](state, action) {
+		// Do something.
+	}
 });
 ```
 
