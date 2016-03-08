@@ -4,6 +4,16 @@ A small library to help build [Redux](http://redux.js.org/) reducers and their a
 
 ## Basics
 
+Actionize exposes several functions to help in creating reducers and dispatching actions.
+
+- [`reducer`](#reducer)
+- [`dispatcher`](#dispatch-handler)
+- [`handle`](#handle-external-actions)
+- [`combine`](#combine-reducers)
+- [`nest`](#nest-reducers)
+
+### Reducer
+
 Actionize exposes a `reducer` function to allow easy construction of reducers/actions
 in one location without using switch statements:
 
@@ -44,6 +54,7 @@ The `reducer` function returns a reducer with the same signature that Redux expe
 `(state, action) => newState`. It can be used directly with other Redux or with other reducers.
 
 The action handlers are exposed on the reducer and can be called directly; for example:
+
 `todoList.add(state, { text: 'foo' })`.
 
 Global action types are generated based on the namespace and action keys (in the above example, `|todos.list:add` and `|todos.list:complete`).
@@ -157,6 +168,52 @@ myDispatcher.todoList.edit({
 myDispatcher.otherActions.doSomething({ ... });
 ```
 
+## Handle External Actions
+
+There may be cases where you'd like a reducer to listen for an action defined in another.
+Actionize exposes a `handle` function to wire an action handler for external/multiple actions.
+
+```js
+import { reducer, handle } from 'actionize';
+
+const app = reducer('app', {}, {
+  userLoggedIn(state, { username }) {
+    // ...
+  }
+});
+
+// Handle an action from another reducer.
+const todoList = reducer('todos.list', [], {
+  [handle(app.userLoggedIn)](state, { username }) {
+    // Fetch user todos...
+  }
+});
+```
+
+You can also setup an action handler for a whole reducer, or multiple actions:
+
+```js
+// Handle multiple specific actions.
+const todoList = reducer('todos.list', [], {
+
+	// ...
+
+  [handle(app.userLoggedIn, app.userLoggedOut)](state, { username }) {
+    // Do something.
+  }
+});
+
+// Handle all actions defined in another reducer.
+const todoList = reducer('todos.list', [], {
+
+  // ...
+
+  [handle(app)](state, action) {
+    // Do something.
+  }
+});
+```
+
 ## Combine Reducers
 
 Actionize exposes a `combine` function to combine reducers similar to Redux's
@@ -203,6 +260,7 @@ respective reducer-generated states.
 
 An implementation is provided for combining results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
+
 **`combine.immutable(reducers, structure)`**
 
 An Immutable `structure` must be provided; for example:
@@ -270,7 +328,7 @@ properties `bar` and `baz` with values being their respective reducer-generated 
 
 ### Nest Reducers (Immutable JS Structure)
 
-An implementation is provided for combining nesting results into an
+An implementation is provided for nesting results into an
 [Immutable](https://facebook.github.io/immutable-js/) structure:
 
 **`nest.immutable(parent, reducers)`**
