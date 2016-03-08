@@ -7,7 +7,13 @@ A small library to help build [Redux](http://redux.js.org/) reducers and their a
 Actionize exposes a `reducer` function to allow easy construction of reducers/actions
 in one location without using switch statements:
 
-`reducer(namespace, initialState, actions)`
+**`reducer(namespace, initialState, actions)`**
+
+|Argument||
+|:---|:---|
+|`namespace`|A string namespace for the reducer. Mainly for debugging and inspection purposes.|
+|`initialState`|The initial state for the reducer.|
+|`actions`|An object containing functions for each action the reducer exposes.|
 
 Each action is a **function**, taking the current state and the action object.
 
@@ -89,6 +95,13 @@ store.dispatch({
 A better way is to use the built-in Actionize `dispatcher` to create a dispatch handler, passing the
 reducer and the Redux store's dispatch function.
 
+**`dispatcher(actions, reduxStoreDispatch)`**
+
+|Argument||
+|:---|:---|
+|`actions`|An object or reducer containing actions. See below for various combinations.|
+|`reduxStoreDispatch`|The Redux dispatch function from a store.|
+
 ```js
 import { dispatcher } from 'actionize';
 
@@ -148,7 +161,7 @@ Actionize exposes a `combine` function to combine reducers similar to Redux's
 [`combineReducers`](http://redux.js.org/docs/api/combineReducers.html) except it provides a way to change how
 the results are combined:
 
-`combine(reducers, pick, join)`
+**`combine(reducers, pick, join)`**
 
 |Argument||
 |:---|:---|
@@ -214,7 +227,7 @@ reducer that returns an [Immutable Map](https://facebook.github.io/immutable-js/
 Actionize exposes a `nest` function to combine reducer results _underneath_ of another reducer's results.
 
 
-`nest(parent, reducers, pick, join)`
+**`nest(parent, reducers, pick, join)`**
 
 |Argument||
 |:---|:---|
