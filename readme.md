@@ -153,8 +153,8 @@ the results are combined:
 |Argument||
 |:---|:---|
 |`reducers`|A mapping of the reducers to join by key; for example:`{ foo: fooReducer, ... }`|
-|`pick(state, key)`|Returns the value of the given key from the current state.|
-|`join(state, values)`|Join all of the given values for the final result.|
+|<code>pick(state,&nbsp;key)</code>|Returns the value of the given key from the current state.|
+|<code>join(state,&nbsp;values)</code>|Join all of the given values for the final result.|
 
 Example:
 
@@ -220,8 +220,8 @@ Actionize exposes a `nest` function to combine reducer results _underneath_ of a
 |:---|:---|
 |`parent`|The parent reducer that generates the main state.|
 |`reducers`|A mapping of the reducers which generate values to nest under the parent; for example:`{ foo: fooReducer, ... }`|
-|`pick(parentState, key)`|Returns the value of the given key from the given parent state.|
-|`join(parentState, values)`|Join all of the given values to the given parent state for the final result.|
+|<code>pick(parentState,&nbsp;key)</code>|Returns the value of the given key from the given parent state.|
+|<code>join(parentState,&nbsp;values)</code>|Join all of the given values to the given parent state for the final result.|
 
 Example:
 
