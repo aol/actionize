@@ -21,6 +21,7 @@ Each action is a **function**, taking the current state and the action object.
 
 ```js
 import Actionize from 'actionize';
+
 const actionize = new Actionize();
 
 const todoList = actionize.reducer('todos.list', [], {
@@ -224,7 +225,6 @@ the results are combined:
 Example:
 
 ```js
-import { reducer, combine } from 'actionize';
 const foo = actionize.reducer(...);
 const bar = actionize.reducer(...);
 const combinedReducer = actionize.combine({ foo, bar }, pick, join);
