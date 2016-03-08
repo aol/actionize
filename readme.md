@@ -260,7 +260,7 @@ An Immutable `structure` must be provided; for example:
 
 **`actionize.combineImmutable(reducers, Immutable.Map)`**
 
-Or when creating `Actionize`:
+Or when creating `Actionize`, the Immutable library can be passed as an argument:
 
 **`const actionize = new Actionize({ Immutable });`**
 
