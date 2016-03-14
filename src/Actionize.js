@@ -113,21 +113,38 @@ export default class Actionize
 	 * @returns {Object.<string, Object|Function>} A dispatcher object tree.
 	 */
 	dispatcher(actions, dispatch) {
-		const result = {};
-		Object.keys(actions).forEach(key => {
-			const value = actions[key];
-			const type = typeof value;
-			if (type === 'function') {
-				if (value._actionizeHandlers) {
-					result[key] = this.dispatcher(value, dispatch);
-				} else if (value.type) {
-					result[key] = args => dispatch({ ...args, type: value.type });
+
+		const processedItems = [];
+		const processedResults = [];
+
+		const dispatcherLevel = actions => {
+			const result = {};
+			Object.keys(actions).forEach(key => {
+				const value = actions[key];
+				const processedIndex = processedItems.indexOf(value);
+				if (processedIndex >= 0) {
+					result[key] = processedResults[processedIndex];
+				} else {
+					const type = typeof value;
+					if (type === 'function' && value.type) {
+						const invoker = args => dispatch({ ...args, type: value.type });
+						result[key] = invoker;
+						processedItems.push(value);
+						processedResults.push(invoker)
+					} else if (type === 'function' || type === 'object') {
+						const nested = dispatcherLevel(value);
+						if (Object.keys(nested).length) {
+							result[key] = nested;
+							processedItems.push(value);
+							processedResults.push(nested);
+						}
+					}
 				}
-			} else if (type === 'object') {
-				result[key] = this.dispatcher(value, dispatch);
-			}
-		});
-		return result;
+			});
+			return result;
+		};
+
+		return dispatcherLevel(actions);
 	}
 
 	/**
