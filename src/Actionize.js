@@ -196,7 +196,7 @@ export default class Actionize
 	 */
 	combine(reducers, pick, join) {
 		const reducerKeys = Object.keys(reducers);
-		return function (state, action) {
+		const reducerFunc = (state, action) => {
 			let updated = false;
 			const values = {};
 			reducerKeys.forEach(key => {
@@ -213,6 +213,10 @@ export default class Actionize
 			}
 			return state;
 		};
+		reducerKeys.forEach(key => {
+			reducerFunc[key] = reducers[key];
+		});
+		return reducerFunc;
 	}
 
 	/**
@@ -268,10 +272,17 @@ export default class Actionize
 	 */
 	nest(parent, reducers, pick, join) {
 		const nestedReducer = this.combine(reducers, pick, join);
-		return function (state, action) {
+		const reducerFunc = (state, action) => {
 			const parentState = parent(state, action);
 			return nestedReducer(parentState, action);
 		};
+		Object.keys(parent).forEach(key => {
+			const action = parent[key];
+			if (typeof action === 'function' && action.type) {
+				reducerFunc[key] = action;
+			}
+		});
+		return reducerFunc;
 	}
 
 	/**
