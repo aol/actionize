@@ -65,7 +65,7 @@ Set a reducer by name. The `builder` function should return the reducer. The `na
 
 This function is _lazy_ and will not call `builder` until `.get` is called for the same name.
 
-```
+```js
 actionize.set('foo', build => build.reducer({}, {
 	doSomething(state, { arg }) {
 		return { ...state, arg };
@@ -79,7 +79,7 @@ actionize.set('foo', build => build.reducer({}, {
 
 Same as `.set`, but _not lazy_. Returns the reducer from `builder` immediately.
 
-```
+```js
 const fooReducer = actionize.define('foo', build => build.reducer(...));
 ```
 
@@ -90,7 +90,7 @@ const fooReducer = actionize.define('foo', build => build.reducer(...));
 Get a reducer by name. This will invoke the `builder` prebiously given to `.set` for the same name.
 If `.get` was called previously for the same name, the same instance will be returned.
 
-```
+```js
 actionize.set('foo', build => build.reducer(...));
 // ...
 const fooReducer = actionize.get('foo');
