@@ -1,107 +1,75 @@
+import ActionizeBuild from './ActionizeBuild';
+
 export default class Actionize
 {
 	/**
 	 * Create a new Actionize instance.
 	 *
-	 * @param {Function} [options.context]   A function producing the "this" context for all action handlers.
-	 * @param {Object}   [options.Immutable] A reference to the Immutable library for creating immutable data structures.
-	 *
-	 * @return {Actionize} A new Actionize instance.
+	 * @param {Object} options Options for the instance.
 	 */
-	constructor(options = {}) {
-		// Options for this Actionize instance.
-		this._options = options || {};
-		// Map of unique action type prefixes to number of instances.
-		this._actionTypeTicks = {};
-		// Map of unique action types (including ticks).
+	constructor(options) {
+		this._creators = {};
+		this._reducers = {};
 		this._actionTypes = {};
+		this._reducersReserved = [];
+		this._options = options || {};
 	}
 
 	/**
-	 * Create a globally-unique action type string.
+	 * Define a reducer and return it immediately.
 	 *
-	 * @param {string} namespace The namespace for the action type (cannot include "|", ":", or "#").
-	 * @param {string} key       The key for the action type (cannot include "|", ":", ".", or "#").
+	 * @param {string}   name    The name for the reducer.
+	 * @param {Function} creator The reducer creator function.
 	 *
-	 * @returns {string} The globally-unique action type.
+	 * @returns {Function} The reducer.
 	 */
-	_createActionType(namespace, key) {
-
-		if (typeof namespace !== 'string') {
-			throw new Error('namespace must be a string.');
-		}
-		if (namespace.match(/[\#\:\|]/i)) {
-			throw new Error('namespace cannot contain characters ("|", ":", "#").');
-		}
-		if (!key || key.match(/[\#\:\.\|]/i)) {
-			throw new Error('key cannot contain characters ("|", ":", ".", "#").');
-		}
-		const prefix = namespace + ':' + key;
-		const tick = (this._actionTypeTicks[prefix] || 0) + 1;
-		this._actionTypeTicks[prefix] = tick;
-		const name = '|' + prefix + (tick === 1 ? '' : '#' + tick);
-		this._actionTypes[name] = true;
-		return name;
+	define(name, creator) {
+		this.set(name, creator);
+		return this.get(name);
 	}
 
 	/**
-	 * Create a reducer.
+	 * Set the reducer for the given name to the result of the creator function.
 	 *
-	 * @param {string}                    namespace    The namespace of the reducer.
-	 * @param {*}                         initialState The reducer's initial state.
-	 * @param {Object.<string, Function>} actions      A map of action keys to handlers.
-	 * For example:
-	 * <pre><code>
-	 * {
-	 *   addPropertyActionExample(state, action) {
-	 *     return { ...state, anotherProperty: action.value };
-	 *   },
-	 *   ...
-	 * }
-	 * </code></pre>
+	 * @param {string}   name    The name for the reducer.
+	 * @param {Function} creator The reducer creator function.
 	 *
-	 * @returns {Function} The reducer function.
+	 * @returns {void}
 	 */
-	reducer(namespace, initialState, actions) {
+	set(name, creator) {
+		Actionize.validateName(name);
+		if (typeof creator !== 'function') {
+			throw new Error('Creator given must be a function.');
+		}
+		if (this._creators[name]) {
+			throw new Error('Name given already defined.');
+		}
+		this._creators[name] = creator;
+	}
 
-		const actionHandlers = {};
-
-		const reducerFunc = (state = initialState, action) => {
-			const actionType = action && action.type;
-			const handlers = actionType && actionHandlers[actionType];
-			if (handlers) {
-				handlers.forEach(handler => {
-					state = handler(state, action);
-				});
-			}
-			return state;
-		};
-
-		Object.keys(actions).forEach(key => {
-			let actionTypes;
-			const actionHandler = actions[key];
-			const actionCall = (state, action) => {
-				const contextFunc = this._options.context;
-				const context = contextFunc && contextFunc(actionCall, reducerFunc);
-				return actionHandler.call(context, state, action);
-			};
-			if (key[0] === '|') {
-				actionTypes = key.split('|').filter(key => !!key).map(key => '|' + key);
-			} else {
-				const actionType = this._createActionType(namespace, key);
-				actionTypes = [ actionType ];
-				actionCall.type = actionType;
-				reducerFunc[key] = actionCall;
-			}
-			actionTypes.forEach(name => {
-				const list = actionHandlers[name] || (actionHandlers[name] = []);
-				list.push(actionCall);
-			});
-		});
-
-		reducerFunc._actionizeNamespace = namespace;
-		reducerFunc._actionizeHandlers = actionHandlers;
-		return reducerFunc;
+	/**
+	 * Get the reducer previously defined with the given name.
+	 *
+	 * @param {string} name The name of the reducer to get..
+	 *
+	 * @returns {Function} The reducer.
+	 */
+	get(name) {
+		let reducer = this._reducers[name];
+		if (reducer) {
+			return reducer;
+		}
+		const creator = this._creators[name];
+		if (!creator) {
+			throw new Error('Name given to actionize.get(name) is not defined.');
+		}
+		reducer = creator(new ActionizeBuild(name, this._options));
+		if (typeof reducer !== 'function') {
+			throw new Error('Creator given for "' + name + '" must return a function.');
+		}
+		this._reserveActionTypes(reducer);
+		this._reducers[name] = reducer;
+		return reducer;
 	}
 
 	/**
@@ -148,192 +116,87 @@ export default class Actionize
 	}
 
 	/**
-	 * Helper for generating a action type handler string from various inputs.
+	 * Check to make sure there are only a single instance of each action on the given reducer.
 	 *
-	 * @param {*[]} items An array of items contains actions to handle.
-	 *
-	 * Can contain action handler functions, for example:
-	 * <pre><code>
-	 * actionize.reducer('test', {}, {
-	 *   [handle(reducer2.foo, reducer3.bar)] { ... }
-	 * }
-	 * </code></pre>
-	 *
-	 * Can contain an entire reducer (to handle all of its actions) for example:
-	 * <pre><code>
-	 * actionize.reducer('test', {}, {
-	 *   [handle(reducer2)] { ... }
-	 * }
-	 * </code></pre>
-	 *
-	 * @return {string} The combined action type string.
+	 * @param {Function} reducer The reducer to check.
 	 */
-	handle(...items) {
-		const actions = items.map(item => {
-			if (typeof item === 'string') {
-				return item;
-			} else if (item) {
+	_reserveActionTypes(reducer) {
+
+		// Don't reserve the same reducer twice.
+		const reserved = this._reducersReserved;
+		if (reserved.indexOf(reducer) >= 0) {
+			return;
+		}
+
+		const types = this._actionTypes;
+		let reserve = false;
+		Object.keys(reducer).forEach(key => {
+			const item = reducer[key];
+			if (typeof item === 'function') {
 				const type = item.type;
 				if (type) {
-					return type;
-				}
-				const handlers = item._actionizeHandlers;
-				if (handlers) {
-					return Object.keys(handlers).join('');
+					if (types[type]) {
+						throw new Error('Action "' + item.type + '" is defined twice.');
+					}
+					types[type] = true;
+					reserve = true;
+				} else {
+					this._reserveActionTypes(item);
 				}
 			}
 		});
-		return actions.filter(action => !!action).join('');
-	}
 
-	/**
-	 * Pick a value from the given state.
-	 *
-	 * @callback combinePick
-	 * @param {*}      state The current state.
-	 * @param {string} key   The key to get.
-	 */
-
-	/**
-	 * Join values together.
-	 *
-	 * @callback combineJoin
-	 * @param {*}                  state  The current state.
-	 * @param {Object.<string, *>} values The values to join.
-	 */
-
-	/**
-	 * Combine reducers into a single one.
-	 *
-	 * @param {Object.<string, Function>} reducers The reducers to join.
-	 * @param {combinePick}               pick     Pick a value from the given state for the given key.
-	 * @param {combineJoin}               join     Join values together.
-	 *
-	 * @returns {Function} The combined reducer.
-	 */
-	combine(reducers, pick, join) {
-		const reducerKeys = Object.keys(reducers);
-		const reducerFunc = (state, action) => {
-			let updated = false;
-			const values = {};
-			reducerKeys.forEach(key => {
-				const subState = pick(state, key);
-				const reducer = reducers[key];
-				const newState = reducer(subState, action);
-				if (subState !== newState) {
-					updated = true;
-				}
-				values[key] = newState;
-			});
-			if (updated) {
-				state = join(state, values);
-			}
-			return state;
-		};
-		reducerKeys.forEach(key => {
-			reducerFunc[key] = reducers[key];
-		});
-		return reducerFunc;
-	}
-
-	/**
-	 * Combine the given reducers into one that produces a plain JS object.
-	 *
-	 * @param {Object.<string, Function>} reducers The reducers to join.
-	 *
-	 * @returns {Function} The combined reducer. Returns values in a plain JS object by key.
-	 */
-	combinePlain(reducers) {
-		return this.combine(
-			reducers,
-			(state, key) => state && state[key],
-			(state, values) => values
-		);
-	}
-
-	/**
-	 * Combine the given reducers into one that produces an Immutable JS object.
-	 *
-	 * @param {Object.<string, Function>} reducers  The reducers to join.
-	 * @param {Function}                  structure A function to produce the immutable JS structure.
-	 * For example, Immutable.Map can be used.
-	 *
-	 * @returns {Function} The combined reducer. Returns values using the structure given.
-	 */
-	combineImmutable(reducers, structure) {
-		if (!structure) {
-			const Immutable = this._options.Immutable;
-			if (Immutable) {
-				structure = Immutable.Map;
-			}
+		if (reserve) {
+			reserved.push(reducer);
 		}
-		if (!structure) {
-			throw new Error('actionize.combineImmutable(reducers, structure) requires an Immutable structure.');
+	}
+
+
+	/**
+	 * Create an action type string.
+	 *
+	 * @param {string} namespace The namespace for the action type (cannot include "|", ":", or "#").
+	 * @param {string} key       The key for the action type (cannot include "|", ":", ".", or "#").
+	 * @private
+	 *
+	 * @returns {string} The action type string.
+	 */
+	static buildActionType(namespace, key) {
+		Actionize.validateActionKey(key);
+		return '|' + namespace + ':' + key;
+	}
+
+	/**
+	 * Check if the name is valid.
+	 *
+	 * @param {string} name The name to check.
+	 *
+	 * @private
+	 * @returns {void}
+	 */
+	static validateName(name) {
+		if (typeof name !== 'string') {
+			throw new Error('Actionize name must be a string.');
 		}
-		return this.combine(
-			reducers,
-			(state, key) => state && state.get(key),
-			(state, values) => structure(values)
-		);
+		if (name.match(/[\#\:\|]/i)) {
+			throw new Error('Actionize name "' + name + '" cannot contain characters ("|", ":", "#").');
+		}
 	}
 
 	/**
-	 * Combine reducers into a single one. Nest the given reducers under the parent.
+	 * Ensure the action key is valid.
 	 *
-	 * @param {Function}                  parent   The parent reducer.
-	 * @param {Object.<string, Function>} reducers The reducers to nest.
-	 * @param {combinePick}               pick     Pick a value from the given parent state for the given key.
-	 * @param {combineJoin}               join     Join values to the parent state.
+	 * @param {string} key The action key to check.
 	 *
-	 * @returns {Function} The combined reducer.
+	 * @private
+	 * @returns {void}
 	 */
-	nest(parent, reducers, pick, join) {
-		const nestedReducer = this.combine(reducers, pick, join);
-		const reducerFunc = (state, action) => {
-			const parentState = parent(state, action);
-			return nestedReducer(parentState, action);
-		};
-		Object.keys(parent).forEach(key => {
-			const action = parent[key];
-			if (typeof action === 'function' && action.type) {
-				reducerFunc[key] = action;
-			}
-		});
-		return reducerFunc;
-	}
-
-	/**
-	 * Combine given reducers into a single one. Nest the given reducers state under the parent state by key.
-	 *
-	 * @param {Function}                  parent   The parent reducer.
-	 * @param {Object.<string, Function>} reducers The reducers to nest.
-	 *
-	 * @returns {Function} The combined reducer. Returns values in a plain JS object by key.
-	 */
-	nestPlain(parent, reducers) {
-		return this.nest(
-			parent,
-			reducers,
-			(state, key) => state && state[key],
-			(state, values) => Object.assign({}, state, values)
-		);
-	}
-
-	/**
-	 * Combine given reducers into a single one. Nest the given reducers state under the parent state by key.
-	 * The parent state should be an Immutable structure that exposes a get and a merge method.
-	 *
-	 * @param {Function}                  parent   The parent reducer.
-	 * @param {Object.<string, Function>} reducers The reducers to nest.
-	 *
-	 * @returns {Function} The combined reducer. Returns values in an Immutable structure.
-	 */
-	nestImmutable(parent, reducers) {
-		return this.nest(
-			parent,
-			reducers,
-			(state, key) => state && state.get(key),
-			(state, values) => state && state.merge(values)
-		);
+	static validateActionKey(key) {
+		if (typeof key !== 'string') {
+			throw new Error('key must be a string.');
+		}
+		if (key.match(/[\#\:\.\|]/i)) {
+			throw new Error('key cannot contain characters ("|", ":", ".", "#").');
+		}
 	}
 }

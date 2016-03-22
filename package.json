@@ -1,9 +1,9 @@
 {
   "name": "actionize",
-  "private": true,
-  "version": "0.0.2",
+  "version": "1.0.0",
+  "license": "MIT",
   "description": "A small library to help build Redux reducers and their associated actions.",
-  "main": "lib/Actionize.js",
+  "main": "src/Actionize.js",
   "jsnext:main": "es/Actionize.js",
   "scripts": {
     "clean": "rimraf lib dist es coverage",

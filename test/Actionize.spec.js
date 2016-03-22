@@ -2,114 +2,165 @@ import expect from 'expect';
 import Immutable from 'immutable';
 import Actionize from '../src/Actionize';
 
-describe('actionize', () => {
+describe('Actionize', () => {
 
-	const actionize = new Actionize;
+	describe('set/define', () => ['set', 'define'].forEach(f => {
 
-	describe('reducer', () => {
-
-		it('defaults to initial state', () => {
-			const initialState = { foo: 'bar' };
-			const reducer = actionize.reducer('reducer1', initialState, {});
-			const value = reducer();
-			expect(value).toEqual(initialState);
+		it('(' + f + ') throws an error when creator is not a function', () => {
+			expect(() => {
+				const a = new Actionize;
+				a[f]('foo', 'not-a-function');
+			}).toThrow(/must be a function/i);
 		});
 
-		it('rejects invalid names', () => {
-			const action = (state) => state;
-			const actions = { action };
-			expect(() => actionize.reducer({}, {}, actions)).toThrow(/namespace must be a string/);
-			expect(() => actionize.reducer('|foo', {}, actions)).toThrow(/namespace cannot contain characters/);
-			expect(() => actionize.reducer('foo:bar', {}, actions)).toThrow(/namespace cannot contain characters/);
-			expect(() => actionize.reducer('foo#bar', {}, actions)).toThrow(/namespace cannot contain characters/);
-			expect(() => actionize.reducer('red1', {}, { 'foo:bar': action })).toThrow(/key cannot contain characters/);
-			expect(() => actionize.reducer('red2', {}, { 'foo#bar': action })).toThrow(/key cannot contain characters/);
-			expect(() => actionize.reducer('red3', {}, { 'foo.bar': action })).toThrow(/key cannot contain characters/);
+		it('(' + f + ') throws an error when name is already set', () => {
+			expect(() => {
+				const a = new Actionize;
+				a[f]('foo', () => () => null);
+				a[f]('foo', () => () => null);
+			}).toThrow(/already defined/i);
 		});
 
-		it('handles actions properly', () => {
-			const initialState = { foo: 'bar' };
-			const reducer = actionize.reducer('reducer2', initialState, {
-				setBaz: (state, action) => ({ ...state, baz: action.baz })
-			});
-			const value = reducer(initialState, { type: reducer.setBaz.type, baz: 'something' });
-			expect(value).toEqual({ foo: 'bar', baz: 'something' });
+		it('(' + f + ') sets a value that can be fetched with get', () => {
+			const a = new Actionize;
+			const result = () => null;
+			a[f]('foo', () => result);
+			expect(a.get('foo')).toEqual(result);
 		});
 
-		it('exposes direct action handlers', () => {
-			const initialState = { foo: 'bar' };
-			const reducer = actionize.reducer('reducer3', initialState, {
-				setBaz: (state, action) => ({ ...state, baz: action.baz })
-			});
-			expect(reducer.setBaz).toBeA('function');
-			expect(reducer.setBaz(initialState, { baz: 'something' })).toEqual({ foo: 'bar', baz: 'something' });
+		it('(' + f + ') must use strings for names', () => {
+			expect(() => {
+				const a = new Actionize;
+				a[f](123, 'not-a-function');
+			}).toThrow(/must be a string/i);
 		});
 
-		it('ensures action types do not collide', () => {
-			const initialState = { foo: 'bar' };
-			const reducer1 = actionize.reducer('reducer.dupe', initialState, { foo: (state) => state });
-			const reducer2 = actionize.reducer('reducer.dupe', initialState, { foo: (state) => state });
-			expect(reducer1.foo.type).toNotBe(reducer2.foo.type);
+		it('(' + f + ') names cannot contain reserved chars', () => {
+			const chars = ['|', ':', '#'];
+			chars.forEach(char => expect(() => {
+				const a = new Actionize;
+				a[f]('test-' + char + '-character', () => null);
+			}).toThrow(/cannot contain characters/i, 'Should throw error for char "' + char + '"'));
 		});
 
-		it('allows handling external actions', () => {
-			const initialState = { foo: 'bar' };
-			const reducer1 = actionize.reducer('reducer.ext1', initialState, {
-				foo: (state) => state
-			});
-			const reducer2 = actionize.reducer('reducer.ext2', initialState, {
-				[reducer1.foo.type]: (state, action) => ({ ...state, baz: action.baz })
-			});
-			const value = reducer2(undefined, { type: reducer1.foo.type, baz: 'something' });
-			expect(value).toEqual({ foo: 'bar', baz: 'something' });
+	}));
+
+	describe('define', () => {
+
+		it('returns the reducer immediately', () => {
+			const a = new Actionize;
+			const result = () => null;
+			expect(a.define('foo', () => result)).toEqual(result);
 		});
 
-		it('allows handling multiple external actions', () => {
-			const initialState = { foo: 'bar' };
-			const reducer1 = actionize.reducer('reducer.ext1', initialState, {
-				foo1: (state) => state,
-				foo2: (state) => state
-			});
-			const reducer2 = actionize.reducer('reducer.ext2', initialState, {
-				[reducer1.foo1.type + reducer1.foo2.type]: (state, action) => ({ ...state, baz: action.baz })
-			});
-			const value1 = reducer2(undefined, { type: reducer1.foo1.type, baz: 'val1' });
-			const value2 = reducer2(undefined, { type: reducer1.foo1.type, baz: 'val2' });
-			expect(value1).toEqual({ foo: 'bar', baz: 'val1' });
-			expect(value2).toEqual({ foo: 'bar', baz: 'val2' });
+	});
+
+	describe('get', () => {
+
+		it('throws an error when name is not defined', () => {
+			expect(() => {
+				const a = new Actionize;
+				a.get('undefined')
+			}).toThrow(/not defined/i);
 		});
 
-		it('allows passing custom context to handlers', () => {
-			let contextHandler;
-			let contextReducer;
-			const actionize = new Actionize({
-				context: (handler, reducer) => {
-					contextHandler = handler;
-					contextReducer = reducer;
-					return { custom: 'context' };
-				}
-			});
-			const reducer = actionize.reducer('context', {}, {
-				foo() {
-					return { custom: this.custom, foo: true };
-				}
-			});
-			const value = reducer({}, { type: reducer.foo.type });
-			expect(value).toEqual({ custom: 'context', foo: true });
-			expect(contextHandler).toBe(reducer.foo);
-			expect(contextReducer).toBe(reducer);
+		it('throws an error when creator does not return a function', () => {
+			expect(() => {
+				const a = new Actionize;
+				a.set('foo', () => 'not-a-function');
+				a.get('foo')
+			}).toThrow(/must return a function/i);
 		});
+
+		it('returns already defined items immediately', () => {
+			const a = new Actionize;
+			const result = () => null;
+			let called = 0;
+			a.set('foo', () => {
+				called++;
+				return result;
+			});
+			expect(a.get('foo')).toEqual(result);
+			expect(a.get('foo')).toEqual(result);
+			expect(called).toEqual(1);
+		});
+
+		it('works with defined nested reducers', () => {
+			const a = new Actionize;
+
+			a.set('r1', build => {
+				const r2 = a.get('r2');
+				const r1 = build.reducer({ foo: true }, {
+					setBar: (state, action) => Object.assign({}, state, { bar: action.bar }),
+				});
+				return build.nestPlain(r1, { r2 });
+			});
+
+			a.set('r2', build => build.reducer({ baz: true }, {
+				setQux: (state, action) => Object.assign({}, state, { qux: action.qux }),
+			}));
+
+			const r1 = a.get('r1');
+			expect(r1).toBeA('function');
+			expect(r1.setBar).toBeA('function');
+			expect(r1.setBar.type).toBeA('string');
+			expect(r1.r2).toBeA('function');
+			expect(r1.r2.setQux).toBeA('function');
+			expect(r1.r2.setQux.type).toBeA('string');
+		});
+
+		it('throws an error for duplicate action types', () => {
+			const a = new Actionize;
+
+			a.set('r1', build => {
+				const r1 = build.reducer({ r1: true }, {
+					setBar: (state, action) => Object.assign({}, state, { r1Bar: action.bar })
+				});
+				const r2 = build.reducer({ r2: true }, {
+					setBar: (state, action) => Object.assign({}, state, { r2Bar: action.bar })
+				});
+				return build.combinePlain({ r1, r2 });
+			});
+
+			expect(() => a.get('r1')).toThrow(/action "|r1:setBar" is defined twice/i);
+		});
+
+		it('ignores non-function properties on reducer', () => {
+			const a = new Actionize;
+
+			a.set('r', build => {
+				const r = build.reducer({ r1: true }, {
+					setBar: (state, action) => Object.assign({}, state, { bar: action.bar }),
+				});
+				r.notAFunction1 = 123;
+				r.notAFunction2 = {};
+				r.notAFunction3 = true;
+				r.notAFunction4 = 'yo';
+				return r;
+			});
+
+			const r = a.get('r');
+			expect(r).toBeA('function');
+			expect(r.setBar).toBeA('function');
+			expect(r.setBar.type).toBeA('string');
+			expect(r.notAFunction1).toBeA('number');
+			expect(r.notAFunction2).toBeA('object');
+			expect(r.notAFunction3).toBeA('boolean');
+			expect(r.notAFunction4).toBeA('string');
+		});
+
 	});
 
 	describe('dispatcher', () => {
 
 		it('works with a reducer', () => {
-			const reducer = actionize.reducer('dispatcher1', {}, {
+			const a = new Actionize;
+			const reducer = a.define('dispatcher1', build => build.reducer({}, {
 				foo: (state, action) => 'foo' + action.text,
 				bar: (state, action) => 'bar' + action.text
-			});
+			}));
 			const dispatched = [];
-			const dispatcher = actionize.dispatcher(
+			const dispatcher = a.dispatcher(
 				reducer,
 				action => dispatched.push(reducer('state', action))
 			);
@@ -119,12 +170,13 @@ describe('actionize', () => {
 		});
 
 		it('works with actions and objects', () => {
-			const reducer = actionize.reducer('dispatcher2', {}, {
+			const a = new Actionize;
+			const reducer = a.define('dispatcher2', build => build.reducer({}, {
 				foo: (state, action) => 'foo' + action.text,
 				bar: (state, action) => 'bar' + action.text
-			});
+			}));
 			const dispatched = [];
-			const dispatcher = actionize.dispatcher(
+			const dispatcher = a.dispatcher(
 				{
 					r1: reducer,
 					customName1: reducer.foo,
@@ -142,172 +194,40 @@ describe('actionize', () => {
 		});
 	});
 
-	describe('handle', () => {
+	describe('validateName', () => {
 
-		it('works with strings', () => {
-			const reducer = actionize.reducer('handle1', {}, {
-				foo: (state) => state,
-				bar: (state) => state
-			});
-			const value = actionize.handle(reducer.foo.type, reducer.bar.type);
-			expect(value).toEqual('|handle1:foo|handle1:bar');
+		it('throws an error when name is not a string', () => {
+			expect(() => Actionize.validateName(123)).toThrow(/must be a string/i);
+			expect(() => Actionize.validateName({})).toThrow(/must be a string/i);
+			expect(() => Actionize.validateName(() => null)).toThrow(/must be a string/i);
+			expect(() => Actionize.validateName(true)).toThrow(/must be a string/i);
 		});
 
-		it('works with action handlers', () => {
-			const reducer = actionize.reducer('handle2', {}, {
-				foo: (state) => state,
-				bar: (state) => state
-			});
-			const value = actionize.handle(reducer.foo, reducer.bar);
-			expect(value).toEqual('|handle2:foo|handle2:bar');
+		it('throws an error when name contains invalid characters', () => {
+			expect(() => Actionize.validateName("invalid#char")).toThrow(/cannot contain character/i);
+			expect(() => Actionize.validateName("invalid|char")).toThrow(/cannot contain character/i);
+			expect(() => Actionize.validateName("invalid:char")).toThrow(/cannot contain character/i);
 		});
 
-		it('works with reducers', () => {
-			const reducer1 = actionize.reducer('h3', {}, {
-				foo: (state) => state,
-				bar: (state) => state
-			});
-			const reducer2 = actionize.reducer('h4', {}, {
-				baz: (state) => state,
-				qux: (state) => state
-			});
-			const value = actionize.handle(reducer1, reducer2);
-			expect(value).toEqual('|h3:foo|h3:bar|h4:baz|h4:qux');
-		});
 	});
 
-	describe('combine', () => {
+	describe('validateActionKey', () => {
 
-		const reducerPlain1 = actionize.reducer('c1', { c1: true }, {
-			foo: (state) => ({ ...state, foo: true })
-		});
-		const reducerPlain2 = actionize.reducer('c2', { c2: true }, {
-			bar: (state) => ({ ...state, bar: true })
-		});
-
-		function testCombinedPlain(combinedReducer) {
-			let state = combinedReducer();
-			expect(state).toEqual({ r1: { c1: true }, r2: { c2: true } });
-			state = combinedReducer(state, { type: reducerPlain1.foo.type });
-			expect(state).toEqual({ r1: { c1: true, foo: true }, r2: { c2: true } });
-			state = combinedReducer(state, { type: reducerPlain2.bar.type });
-			expect(state).toEqual({ r1: { c1: true, foo: true }, r2: { c2: true, bar: true } });
-			state = combinedReducer(state, { type: '|no-handler' });
-			expect(state).toBe(state);
-		}
-
-		const reducerImmutable1 = actionize.reducer('ci1', Immutable.Map({ c1: true }), {
-			foo: (state) => state.set('foo', true)
-		});
-		const reducerImmutable2 = actionize.reducer('ci2', Immutable.Map({ c2: true }), {
-			bar: (state) => state.set('bar', true)
+		it('throws an error when key is not a string', () => {
+			expect(() => Actionize.validateActionKey(123)).toThrow(/must be a string/i);
+			expect(() => Actionize.validateActionKey({})).toThrow(/must be a string/i);
+			expect(() => Actionize.validateActionKey(() => null)).toThrow(/must be a string/i);
+			expect(() => Actionize.validateActionKey(true)).toThrow(/must be a string/i);
 		});
 
-		function testCombinedImmutable(combinedReducer) {
-			let state = combinedReducer();
-			expect(state.toJS()).toEqual({ r1: { c1: true }, r2: { c2: true } });
-			state = combinedReducer(state, { type: reducerImmutable1.foo.type });
-			expect(state.toJS()).toEqual({ r1: { c1: true, foo: true }, r2: { c2: true } });
-			state = combinedReducer(state, { type: reducerImmutable2.bar.type });
-			expect(state.toJS()).toEqual({ r1: { c1: true, foo: true }, r2: { c2: true, bar: true } });
-			state = combinedReducer(state, { type: '|no-handler' });
-			expect(state).toBe(state);
-		}
-
-		it('works', () => {
-			testCombinedPlain(actionize.combine(
-				{ r1: reducerPlain1, r2: reducerPlain2 },
-				(state, key) => state && state[key],
-				(state, values) => values
-			));
+		it('throws an error when name contains invalid characters', () => {
+			expect(() => Actionize.validateActionKey("invalid#char")).toThrow(/cannot contain character/i);
+			expect(() => Actionize.validateActionKey("invalid|char")).toThrow(/cannot contain character/i);
+			expect(() => Actionize.validateActionKey("invalid:char")).toThrow(/cannot contain character/i);
+			expect(() => Actionize.validateActionKey("invalid.char")).toThrow(/cannot contain character/i);
 		});
 
-		it('(plain) works', () => {
-			testCombinedPlain(actionize.combinePlain({
-				r1: reducerPlain1,
-				r2: reducerPlain2
-			}));
-		});
-
-		it('(immutable) works', () => {
-			testCombinedImmutable(actionize.combineImmutable({
-				r1: reducerImmutable1,
-				r2: reducerImmutable2
-			}, Immutable.Map));
-		});
-
-		it('(immutable) works with Immutable given to constructor', () => {
-			const actionize = new Actionize({ Immutable });
-			testCombinedImmutable(actionize.combineImmutable({
-				r1: reducerImmutable1,
-				r2: reducerImmutable2
-			}));
-		});
-
-		it('(immutable) throws error without structure', () => {
-			expect(() => {
-				actionize.combineImmutable({
-					r1: reducerImmutable1,
-					r2: reducerImmutable2
-				});
-			}).toThrow(/requires an immutable structure/i);
-		});
 	});
 
-	describe('nest', () => {
-
-		const reducerPlain1 = actionize.reducer('n1', { n1: true }, {
-			foo: (state) => ({ ...state, foo: true })
-		});
-		const reducerPlain2 = actionize.reducer('n2', { n2: true }, {
-			bar: (state) => ({ ...state, bar: true })
-		});
-
-		function testNestPlain(nestedReducer) {
-			let state = nestedReducer();
-			expect(state).toEqual({ n1: true, r2: { n2: true } });
-			state = nestedReducer(state, { type: reducerPlain1.foo.type });
-			expect(state).toEqual({ n1: true, foo: true, r2: { n2: true } });
-			state = nestedReducer(state, { type: reducerPlain2.bar.type });
-			expect(state).toEqual({ n1: true, foo: true, r2: { n2: true, bar: true } });
-			state = nestedReducer(state, { type: '|no-handler' });
-			expect(state).toBe(state);
-		}
-
-		const reducerImmutable1 = actionize.reducer('ni1', Immutable.Map({ n1: true }), {
-			foo: (state) => state.set('foo', true)
-		});
-		const reducerImmutable2 = actionize.reducer('ni2', Immutable.Map({ n2: true }), {
-			bar: (state) => state.set('bar', true)
-		});
-
-		function testNestImmutable(nestedReducer) {
-			let state = nestedReducer();
-			expect(state.toJS()).toEqual({ n1: true, r2: { n2: true } });
-			state = nestedReducer(state, { type: reducerImmutable1.foo.type });
-			expect(state.toJS()).toEqual({ n1: true, foo: true, r2: { n2: true } });
-			state = nestedReducer(state, { type: reducerImmutable2.bar.type });
-			expect(state.toJS()).toEqual({ n1: true, foo: true, r2: { n2: true, bar: true } });
-			state = nestedReducer(state, { type: '|no-handler' });
-			expect(state).toBe(state);
-		}
-
-		it('works', () => {
-			testNestPlain(actionize.nest(
-				reducerPlain1,
-				{ r2: reducerPlain2 },
-				(state, key) => state && state[key],
-				(state, values) => Object.assign({}, state, values)
-			));
-		});
-
-		it('(plain) works', () => {
-			testNestPlain(actionize.nestPlain(reducerPlain1, {  r2: reducerPlain2 }));
-		});
-
-		it('(immutable) works', () => {
-			testNestImmutable(actionize.nestImmutable(reducerImmutable1, { r2: reducerImmutable2 }));
-		});
-	});
 
 });
