@@ -119,8 +119,6 @@ todoListActions.edit({
 });
 ```
 
-
-
 ## License
 
   [MIT](LICENSE)
