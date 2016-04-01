@@ -1,6 +1,6 @@
 {
   "name": "actionize",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "description": "A small library to help build Redux reducers and their associated actions.",
   "main": "src/Actionize.js",
